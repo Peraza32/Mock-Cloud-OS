@@ -2,7 +2,15 @@
 #include <sys/stat.h> 
 #include <dirent.h>
 #include <cstring>
+
 using namespace std;
+
+// Definición de códigos de escape ANSI para colores
+#define RESET   "\033[0m"
+#define RED     "\033[31m"
+#define GREEN   "\033[32m"
+#define YELLOW  "\033[33m"
+#define BLUE    "\033[34m"
 
 class FileManager {
 private: 
@@ -94,7 +102,12 @@ void FileManager::showFiles(string dirname) {
 	// Read content of the directory
 	dirent* entity = readdir(dir);
 	while(entity != NULL) {
-		cout << entity->d_name << endl;
+
+		if(entity->d_type == DT_DIR)
+			cout << BLUE << entity->d_name << RESET << endl;
+		else 
+			cout << entity->d_name << endl;
+		
 		if(entity->d_type == DT_DIR && strcmp(entity->d_name, ".") != 0 && strcmp(entity->d_name, "..") != 0) {
 			string path = dirname + "/" + entity->d_name;
 			showFiles(path);
