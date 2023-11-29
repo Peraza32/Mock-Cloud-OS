@@ -39,8 +39,8 @@ public:
 	void showFiles(string clientSpace); // Shows all files in the Cloud space of a specific client
 	void showFiles(string clientSpace, string dir); // Shows only files in the specified directory
 
-	void importFile(string filePath, string newPath);
-	void exportFile(string filePath, string newPath);
+	void importFile(string clientSpace, string sourcePath, string destinationPath);
+	void exportFile(string clientSpace, string sourcePath, string destinationPath);
 
 	void writeReadFile(string clientSpace, string filePath);
 };
@@ -286,15 +286,22 @@ void FileManager::showFiles(string clientSpace) {
 	}
 }
 
-void FileManager::importFile(string filePath, string newPath) {
-	if(directoryExists(newPath)) {
-		string path = baseDirectory + "/" + newPath;
-		
-		if(rename(filePath.c_str(), newPath.c_str()) == 0)
-			cout << "Archivo movido exitosamente " << endl;
-		else perror("Error al mover el archivo");
+void FileManager::importFile(string clientSpace, string sourcePath, string destinationPath) {
+	if(directoryExists(clientSpace)) {
+		string destination = baseDirectory + "/" + clientSpace + "/" + destinationPath;
+		string cmd = "mv " + sourcePath + " " + destination;
+		system(cmd.c_str());
 	} 
-	else perror("El directorio especificado no existe");	
+	else perror("Client space was not found");	
+}
+
+void FileManager::exportFile(string clientSpace, string sourcePath, string destinationPath) {
+	if(directoryExists(clientSpace)) {
+		string source = baseDirectory + "/" + clientSpace + "/" + sourcePath;
+		string cmd = "mv " + source + " " + destinationPath;
+		system(cmd.c_str());
+	} 
+	else perror("Client space was not found");	
 }
 
 void FileManager::writeReadFile(string clientSpace, string filePath) {
@@ -302,7 +309,7 @@ void FileManager::writeReadFile(string clientSpace, string filePath) {
 		string path = baseDirectory + "/" + clientSpace + "/" + filePath;
 		int fd = open(path.c_str(), O_RDWR | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR);
 		if(fd != -1) {
-			std::string cmd = "/bin/nano " + path;
+			string cmd = "/bin/nano " + path;
 			system(cmd.c_str());
 			close(fd);
 		}

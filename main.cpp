@@ -41,6 +41,20 @@ int main(void) {
 		managerDefault.writeReadFile(clients[i], "home/file.txt");
 	}	
 
+	string sourcePath;
+	cout << "----------------------------------------------------------" << endl;
+	cout << "Now it is time to test the import function" << endl;
+	cout << "Write an absolute path to import a file from your computer to client1's home directory: " << endl;
+	cin >> sourcePath;
+	managerDefault.importFile("client1", sourcePath, "home");
+
+	string destinationPath;
+	cout << "----------------------------------------------------------" << endl;
+	cout << "Now it is time to test the export function" << endl;
+	cout << "Write a path where to export file.txt from client1's home directory to your computer: " << endl;
+	cin >> destinationPath;
+	managerDefault.exportFile("client1", "home/file.txt", destinationPath);
+	
 	cout << "Want to delete all files and directories? (1/0) "; 
 	cin >> deleteAll;
 
