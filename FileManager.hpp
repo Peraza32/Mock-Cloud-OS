@@ -3,6 +3,7 @@
 #include <dirent.h>
 #include <cstring>
 #include <unistd.h>
+#include <regex>
 
 using namespace std;
 
@@ -17,12 +18,13 @@ class FileManager {
 private: 
 	string baseDirectory;
 	int createCloudSpace();
+	void deleteDirectory(string dirname);
 
 public:
 	FileManager();
 	FileManager(string baseDirectory);
 
-	int deleteCloudSpace();
+	void deleteCloudSpace();
 
 	bool directoryExists(string dirname);
 	int createClientDirectory(string clientSpace);
@@ -57,17 +59,60 @@ int FileManager::createCloudSpace() {
 	return mkdir(this->baseDirectory.c_str(), 0700);
 }
 
-int FileManager::deleteCloudSpace() {
-	return remove(this->baseDirectory.c_str());
+void FileManager::deleteCloudSpace() {
+	// Open the specified directory
+	DIR* dir = opendir(this->baseDirectory.c_str());
+
+	if(dir == NULL) {
+		cout << "Cloud can not be open: " << endl;
+		return;
+	}
+
+	// Read content of the directory
+	dirent* entity = readdir(dir);
+	while(entity != NULL) {
+		
+		// Delete all clients
+		if(entity->d_type == DT_DIR && strcmp(entity->d_name, ".") != 0 && strcmp(entity->d_name, "..") != 0) {
+			deleteClientDirectory(entity->d_name); // entity->d_name is the complete name of the client. For example: /home/<user>/Cloud/client1
+		}
+
+		entity = readdir(dir);
+	}
+
+	closedir(dir);
+	remove(this->baseDirectory.c_str());
 }
 
 bool FileManager::directoryExists(string dirname) {
-	string path = baseDirectory + "/" + dirname;
-	DIR* dir = opendir(path.c_str());
+	string escapedBaseDirectory = regex_replace(this->baseDirectory, regex("/"), "\\/");
+	
+	if(!regex_match(dirname, regex("^" + escapedBaseDirectory + ".*"))) {
+		string path = baseDirectory + "/" + dirname;
+		DIR* dir = opendir(path.c_str());
 
-	if(dir)
-		return true;
-	else return false;
+		if(dir) {
+			closedir(dir);
+			return true;
+		}
+		else {
+			closedir(dir);
+			return false;
+		}
+	}
+	else {
+		DIR* dir = opendir(dirname.c_str());
+
+		if(dir) {
+			closedir(dir);
+			return true;
+		}
+		else {
+			closedir(dir);
+			return false;
+		}
+	}
+			
 }
 
 int FileManager::createClientDirectory(string clientSpace) {
@@ -81,13 +126,13 @@ int FileManager::createClientDirectory(string clientSpace) {
 	}
 }
 
-int FileManager::deleteClientDirectory(string dirname) {
-	if(directoryExists(dirname)) {
-		string path = baseDirectory + "/" + dirname;
-		return remove(path.c_str());
+int FileManager::deleteClientDirectory(string clientSpace) {
+	if(directoryExists(clientSpace)) {
+		deleteDirectory(this->baseDirectory + "/" + clientSpace);
+		return 0;
 	} 
 	else {
-		cerr << "Directory does not exist" << endl;
+		cerr << "Directory does not exist: " << clientSpace << endl;
 		return -1;	
 	}
 }
@@ -113,16 +158,59 @@ int FileManager::deleteDirectory(string clientSpace, string dirname) {
 	if(directoryExists(clientSpace)) {
 		if(directoryExists(clientSpace + "/" + dirname)) {
 			string path = baseDirectory + "/" + clientSpace + "/" + dirname;
-			return remove(path.c_str());
+			deleteDirectory(path);
+			return 0;
 		}
 		else {
-			cerr << "Directory does not exist" << endl;
+			cerr << "Directory does not exist: " << clientSpace + "/" + dirname << endl;
 			return -1;
 		}
 	} 
 	else {
 		cerr << "Client space was not found" << endl;
 		return -1;
+	}
+}
+
+void  FileManager::deleteDirectory(string dirname) {
+	if(directoryExists(dirname)) {
+
+		// Open the specified directory
+		DIR* dir = opendir(dirname.c_str());
+		if(dir == NULL) {
+			cout << "Specified directory can not be open: " << dirname << endl;
+			return;
+		}
+
+		// Read content of the directory
+		dirent* entity = readdir(dir);
+		while(entity != NULL) {
+			
+			// Delete recursively all contents inside a directory except "." and ".."
+			if(entity->d_type == DT_DIR && strcmp(entity->d_name, ".") != 0 && strcmp(entity->d_name, "..") != 0) {
+				string entityName = entity->d_name;
+				string directory = dirname + "/" + entityName;
+				deleteDirectory(directory);
+			}
+
+			if(entity->d_type != DT_DIR && strcmp(entity->d_name, ".") != 0 && strcmp(entity->d_name, "..") != 0) {
+				if(remove((dirname + "/" + entity->d_name).c_str()) != -1)
+					cout << "File deleted successfully: " << dirname + "/" + entity->d_name << endl;
+				else 
+					cerr << "Error deleting file: "<< dirname + "/" + entity->d_name << endl;
+			}
+
+			entity = readdir(dir);
+		}
+
+		closedir(dir);
+		if(remove(dirname.c_str()) != -1)
+			cout << "Directory deleted successfully: " << dirname << endl;
+		else 
+			cerr << "Error deleting directory: "<< dirname << endl;
+	} 
+	else {
+		cerr << "Directory does not exist: " <<  dirname << endl;	
 	}
 }
 
