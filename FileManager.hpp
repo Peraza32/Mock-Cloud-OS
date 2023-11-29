@@ -26,22 +26,23 @@ public:
 
 	void deleteCloudSpace();
 
-	bool directoryExists(string dirname);
+	bool directoryExists(string dirname); // Checks if a directory exists in the Cloud space
 	int createClientDirectory(string clientSpace);
 	int deleteClientDirectory(string clientSpace);
 
-	int createDirectory(string clientSpace, string dirname);
-	int deleteDirectory(string clientSpace, string dirname);
+	int createDirectory(string clientSpace, string dirname); // Creates a directory inside a client space
+	int deleteDirectory(string clientSpace, string dirname); // Deletes a directory inside a client space
 
-	int createFile(string clientSpace, string filename);
-	int deleteFile(string clientSpace, string filename);
-	int retrieveFile(string clientSpace, string filename);
+	int createFile(string clientSpace, string filename); // Creates a file inside a client space
+	int deleteFile(string clientSpace, string filename); // Deletes a file inside a client space
 
-	void showFiles(string clientSpace);
-	void showFiles(string clientSpace, string dir);
+	void showFiles(string clientSpace); // Shows all files in the Cloud space of a specific client
+	void showFiles(string clientSpace, string dir); // Shows only files in the specified directory
 
 	void importFile(string filePath, string newPath);
-	void exportFile();
+	void exportFile(string filePath, string newPath);
+
+	void writeReadFile(string clientSpace, string filePath);
 };
 
 FileManager::FileManager() {
@@ -74,7 +75,7 @@ void FileManager::deleteCloudSpace() {
 		
 		// Delete all clients
 		if(entity->d_type == DT_DIR && strcmp(entity->d_name, ".") != 0 && strcmp(entity->d_name, "..") != 0) {
-			deleteClientDirectory(entity->d_name); // entity->d_name is the complete name of the client. For example: /home/<user>/Cloud/client1
+			deleteClientDirectory(entity->d_name); 
 		}
 
 		entity = readdir(dir);
@@ -294,4 +295,22 @@ void FileManager::importFile(string filePath, string newPath) {
 		else perror("Error al mover el archivo");
 	} 
 	else perror("El directorio especificado no existe");	
+}
+
+void FileManager::writeReadFile(string clientSpace, string filePath) {
+	if(directoryExists(clientSpace)) {
+		string path = baseDirectory + "/" + clientSpace + "/" + filePath;
+		int fd = open(path.c_str(), O_RDWR | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR);
+		if(fd != -1) {
+			std::string cmd = "/bin/nano " + path;
+			system(cmd.c_str());
+			close(fd);
+		}
+		else {
+			cerr << "Error opening the file" << endl;
+		}
+	} 
+	else {
+		cerr << "Client space was not found" << endl;
+	}
 }
