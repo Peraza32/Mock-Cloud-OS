@@ -26,7 +26,12 @@ public:
 
 	void deleteCloudSpace();
 
-	bool directoryExists(string dirname); // Checks if a directory exists in the Cloud space
+	bool directoryExistsInCloud(string dirname); // Checks if a directory exists in the Cloud space
+	bool fileExistsInCloud(string filename); // Checks if a file exists in the Cloud space
+
+	bool directoryExists(string dirname); // Checks if a directory exists in the specified path
+	bool fileExists(string filename); // Checks if a file exists in the specified path
+
 	int createClientDirectory(string clientSpace);
 	int deleteClientDirectory(string clientSpace);
 
@@ -42,7 +47,7 @@ public:
 	void importFile(string clientSpace, string sourcePath, string destinationPath);
 	void exportFile(string clientSpace, string sourcePath, string destinationPath);
 
-	void writeReadFile(string clientSpace, string filePath);
+	void writeReadFile(string clientSpace, string filePath); // Opens nano for each client and lets the user write in the specified file
 };
 
 FileManager::FileManager() {
@@ -85,7 +90,7 @@ void FileManager::deleteCloudSpace() {
 	remove(this->baseDirectory.c_str());
 }
 
-bool FileManager::directoryExists(string dirname) {
+bool FileManager::directoryExistsInCloud(string dirname) {
 	string escapedBaseDirectory = regex_replace(this->baseDirectory, regex("/"), "\\/");
 	
 	if(!regex_match(dirname, regex("^" + escapedBaseDirectory + ".*"))) {
@@ -116,8 +121,61 @@ bool FileManager::directoryExists(string dirname) {
 			
 }
 
+bool FileManager::fileExistsInCloud(string filename) {
+	string escapedBaseDirectory = regex_replace(this->baseDirectory, regex("/"), "\\/");
+	
+	if(!regex_match(filename, regex("^" + escapedBaseDirectory + ".*"))) {
+		string path = baseDirectory + "/" + filename;
+		int fd = open(path.c_str(), O_RDONLY);
+		if(fd != -1) {
+			close(fd);
+			return true;
+		}
+		else {
+			close(fd);
+			return false;
+		}
+	}
+	else {
+		int fd = open(filename.c_str(), O_RDONLY);
+		if(fd != -1) {
+			close(fd);
+			return true;
+		}
+		else {
+			close(fd);
+			return false;
+		}
+	}
+}
+
+bool FileManager::directoryExists(string dirname) {
+	DIR* dir = opendir(dirname.c_str());
+
+	if(dir) {
+		closedir(dir);
+		return true;
+	}
+	else {
+		closedir(dir);
+		return false;
+	}
+}
+
+bool FileManager::fileExists(string filename) {
+	int fd = open(filename.c_str(), O_RDONLY);
+	if(fd != -1) {
+		close(fd);
+		return true;
+	}
+	else {
+		close(fd);
+		return false;
+	}
+}
+
 int FileManager::createClientDirectory(string clientSpace) {
-	if(!directoryExists(clientSpace)) {
+	if(!directoryExistsInCloud(clientSpace)) {
 		string path = baseDirectory + "/" + clientSpace;
 		return mkdir(path.c_str(), 0700);  // creates the directory in the Cloud space
 	} 
@@ -128,7 +186,7 @@ int FileManager::createClientDirectory(string clientSpace) {
 }
 
 int FileManager::deleteClientDirectory(string clientSpace) {
-	if(directoryExists(clientSpace)) {
+	if(directoryExistsInCloud(clientSpace)) {
 		deleteDirectory(this->baseDirectory + "/" + clientSpace);
 		return 0;
 	} 
@@ -139,8 +197,8 @@ int FileManager::deleteClientDirectory(string clientSpace) {
 }
 
 int FileManager::createDirectory(string clientSpace, string dirname) {
-	if(directoryExists(clientSpace)) {
-		if(!directoryExists(clientSpace + "/" + dirname)) {
+	if(directoryExistsInCloud(clientSpace)) {
+		if(!directoryExistsInCloud(clientSpace + "/" + dirname)) {
 			string path = baseDirectory + "/" + clientSpace + "/" + dirname;
 			return mkdir(path.c_str(), 0700);  // creates the directory in the Cloud space
 		}
@@ -156,8 +214,8 @@ int FileManager::createDirectory(string clientSpace, string dirname) {
 }
 
 int FileManager::deleteDirectory(string clientSpace, string dirname) {
-	if(directoryExists(clientSpace)) {
-		if(directoryExists(clientSpace + "/" + dirname)) {
+	if(directoryExistsInCloud(clientSpace)) {
+		if(directoryExistsInCloud(clientSpace + "/" + dirname)) {
 			string path = baseDirectory + "/" + clientSpace + "/" + dirname;
 			deleteDirectory(path);
 			return 0;
@@ -174,7 +232,7 @@ int FileManager::deleteDirectory(string clientSpace, string dirname) {
 }
 
 void  FileManager::deleteDirectory(string dirname) {
-	if(directoryExists(dirname)) {
+	if(directoryExistsInCloud(dirname)) {
 
 		// Open the specified directory
 		DIR* dir = opendir(dirname.c_str());
@@ -216,7 +274,7 @@ void  FileManager::deleteDirectory(string dirname) {
 }
 
 int FileManager::createFile(string clientSpace, string filename) {
-	if(directoryExists(clientSpace)) {
+	if(directoryExistsInCloud(clientSpace)) {
 		string path = baseDirectory + "/" + clientSpace + "/" + filename;
 		mode_t mode = S_IRUSR | S_IWUSR; // permit read and writing only to the owner
 		return open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, mode);
@@ -228,7 +286,7 @@ int FileManager::createFile(string clientSpace, string filename) {
 }
 
 int FileManager::deleteFile(string clientSpace, string filename) {
-	if(directoryExists(clientSpace)) {
+	if(directoryExistsInCloud(clientSpace)) {
 		string path = baseDirectory + "/" + clientSpace + "/" + filename;
 		return remove(path.c_str());
 	} 
@@ -241,7 +299,7 @@ int FileManager::deleteFile(string clientSpace, string filename) {
 // Show only files in the specified directory
 // dirname must be an absolute route
 void FileManager::showFiles(string clientSpace, string dirname) {
-	if(directoryExists(clientSpace)) {
+	if(directoryExistsInCloud(clientSpace)) {
 
 		// Open the specified directory
 		DIR* dir = opendir(dirname.c_str());
@@ -278,7 +336,7 @@ void FileManager::showFiles(string clientSpace, string dirname) {
 
 // Show all files in the Cloud space of a specific client
 void FileManager::showFiles(string clientSpace) {
-	if(directoryExists(clientSpace)) {
+	if(directoryExistsInCloud(clientSpace)) {
 		showFiles(clientSpace ,this->baseDirectory + "/" + clientSpace);	
 	} 
 	else {
@@ -287,7 +345,11 @@ void FileManager::showFiles(string clientSpace) {
 }
 
 void FileManager::importFile(string clientSpace, string sourcePath, string destinationPath) {
-	if(directoryExists(clientSpace)) {
+	if(directoryExistsInCloud(clientSpace)) {
+		if(fileExistsInCloud(clientSpace + "/" + destinationPath)) {
+			cerr << "File already exists" << endl;
+			return;
+		}
 		string destination = baseDirectory + "/" + clientSpace + "/" + destinationPath;
 		string cmd = "mv " + sourcePath + " " + destination;
 		system(cmd.c_str());
@@ -296,16 +358,27 @@ void FileManager::importFile(string clientSpace, string sourcePath, string desti
 }
 
 void FileManager::exportFile(string clientSpace, string sourcePath, string destinationPath) {
-	if(directoryExists(clientSpace)) {
-		string source = baseDirectory + "/" + clientSpace + "/" + sourcePath;
-		string cmd = "mv " + source + " " + destinationPath;
-		system(cmd.c_str());
+	if(directoryExistsInCloud(clientSpace)) {
+		if(fileExistsInCloud(clientSpace + "/" + sourcePath)) {
+			smatch filename; 
+			if(regex_search(sourcePath, filename, regex("[^/]+$"))) {
+				string destination = destinationPath + "/" + filename.str();
+				if(fileExists(destination)) {
+					cerr << "File already exists" << endl;
+					return;
+				}
+				string source = baseDirectory + "/" + clientSpace + "/" + sourcePath;
+				string cmd = "mv " + source + " " + destinationPath;
+				system(cmd.c_str());
+
+			}
+		}
 	} 
 	else perror("Client space was not found");	
 }
 
 void FileManager::writeReadFile(string clientSpace, string filePath) {
-	if(directoryExists(clientSpace)) {
+	if(directoryExistsInCloud(clientSpace)) {
 		string path = baseDirectory + "/" + clientSpace + "/" + filePath;
 		int fd = open(path.c_str(), O_RDWR | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR);
 		if(fd != -1) {
