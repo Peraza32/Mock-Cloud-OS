@@ -44,7 +44,7 @@ int main()
         // if queue was not open, then calling the server to create it
         int pid = fork();
         if (pid == 0)
-            execl("./", "Server", NULL);
+            execl("./", "./Server", NULL);
         else
         {
             mq = mq_open(queue_name, O_WRONLY | O_NONBLOCK, queue_permissions, NULL);
