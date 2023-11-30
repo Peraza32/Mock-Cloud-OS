@@ -7,6 +7,7 @@
 #include <cstring>
 #include <fstream>
 #include <signal.h>
+#include <sys/wait.h>
 
 using namespace std;
 
@@ -17,6 +18,7 @@ string Menu(bool &flag);
 
 int main()
 {
+    bool isChild = false;
 
     //-------------------------------------------------------------------------------------
     // Variable initailization and Constants declaration
@@ -43,10 +45,19 @@ int main()
         cout << "Message queue not open. Waking up server" << std::endl;
         // if queue was not open, then calling the server to create it
         int pid = fork();
-        if (pid == 0)
-            execl("./", "./Server", NULL);
+        if (pid == 0) {
+            if (execl("./server", "server", "", "", (char *)0 ) == -1) {
+                perror("execl");
+                exit(1); // Exit the child process on error
+            }
+        }
         else
         {
+            cout << "\n-----------------------------------------";
+            cout << "\nServer has been initialized\n";
+            int status;
+            waitpid(pid, &status, 0); // Waiting for the childs execution to terminate to continue
+
             mq = mq_open(queue_name, O_WRONLY | O_NONBLOCK, queue_permissions, NULL);
         }
     }

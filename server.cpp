@@ -11,8 +11,14 @@ using namespace std;
 #define NOTIFY_SIG SIGUSR1 // Notification signal from timer
 static void handler(int);  // Signal handler
 
+mqd_t mq;
+const char *queue_name = "/MessageQueue";
+
 int main()
 {
+    //-------------------------------------------------------------------------------------
+    // Interruption signal
+    signal(SIGINT, handler); // For handling the ^C signal, this way we close the message queue
     //-------------------------------------------------------------------------------------
     // Variable initialization and Constants declaration
     //-------------------------------------------------------------------------------------
@@ -26,7 +32,6 @@ int main()
     mq_attr attr;
     ssize_t numRead; // Number of bytes read
 
-    const char *queue_name = "/MessageQueue";
     const int permission = 0666;
 
     bool flag = false;
@@ -35,7 +40,7 @@ int main()
     // Set up
     //-------------------------------------------------------------------------------------
     // creating message queue
-    mqd_t mq = mq_open(queue_name, O_CREAT | O_RDWR | O_NONBLOCK, permission, NULL);
+    mq = mq_open(queue_name, O_CREAT | O_RDWR | O_NONBLOCK, permission, NULL);
 
     // Validating message queue creation, otherwise inform user and exit
     if (mq == -1)
@@ -137,5 +142,10 @@ int main()
 
 static void handler(int sig)
 {
-    // sig = 1;
+    cout << "\n----------------------------------------------"; 
+    cout << "\nClosing the message queue";
+    // Close and unlink the message queue
+    mq_close(mq);
+    mq_unlink(queue_name);
+    exit(0); // Terminate the program
 }
