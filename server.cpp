@@ -5,6 +5,7 @@
 #include <fcntl.h>    // O_* constants
 #include <unistd.h>   // fork
 #include <signal.h>   // signal
+#include "FileManager.hpp"
 
 using namespace std;
 
@@ -26,6 +27,7 @@ int main()
     struct sigevent sev;
     struct sigaction sa;
     sigset_t blockMask, emptyMask;
+    FileManager fileManager =  FileManager();
 
     // Queue variables and parameters
     string message, receivedMessage;
@@ -113,21 +115,38 @@ int main()
             // Options based on messages received from client
             if (receivedMessage.compare(0, 1, "1") == 0)
             {
+                // Example for <clientSpace> = "client1"
+                // Example for <destinationPath> = home/documents
+                // Example for <sourcePath> = "/home/user/Desktop/file.txt"
+
+                // fileManager.importFile(<clientSpace>, <sourcePath>, <destinationPath>);
                 cout << "Importing file" << endl;
             }
 
             if (receivedMessage.compare(0, 1, "2") == 0)
             {
+                // Example for <clientSpace> = "client1"
+                // Example for <destinationPath> = "/home/user/Desktop/file.txt"
+                // Example for <sourcePath> = "home/documents/"
+
+                //fileManager.exportFile(<clientSpace>, <sourcePath>, <destinationPath>);
                 cout << "Exporting file" << endl;
             }
 
             if (receivedMessage.compare(0, 1, "3") == 0)
             {
+                // Example for <clientSpace> = "client1"
+                // Example for <filename> = "file1.txt" || "home/file.txt"
+
+                //fileManager.deleteFile(<clientSpace>, <filename>);
                 cout << "Deleting file" << endl;
             }
 
             if (receivedMessage.compare(0, 1, "4") == 0)
             {
+                // Example for <clientSpace> = "client1"
+
+                //fileManager.showFiles(<clientSpace>);
                 cout << "Listing files" << endl;
             }
 
