@@ -34,9 +34,9 @@ static void handler(int);
 
 
 
-string loggedMenu(bool &flag);
+string loggedMenu(bool &flag, const string user);
 
-string menu(bool &logged);
+string menu(bool &logged, string &user);
 
 
 
@@ -71,6 +71,10 @@ int main()
     bool flag = true;
 
     bool session = false;
+
+
+
+    string user;
 
 
 
@@ -240,7 +244,7 @@ int main()
 
 
 
-            message = loggedMenu(flag);
+            message = loggedMenu(flag, user);
 
             if (message == "6")
 
@@ -276,9 +280,9 @@ int main()
 
         {
 
-            message = menu(flag);
+            message = menu(flag, user);
 
-            if(message.substr(0,1) == "L")
+            if (message.substr(0, 1) == "L")
 
             {
 
@@ -308,15 +312,15 @@ int main()
 
                     cout << "Login failed" << endl;
 
+                    user = "";
+
                 }
-
-
 
             }
 
 
 
-            if(message.substr(0,1) == "R")
+            if (message.substr(0, 1) == "R")
 
             {
 
@@ -345,6 +349,8 @@ int main()
                 {
 
                     cout << "Registration failed" << endl;
+
+                    user = "";
 
                 }
 
@@ -382,7 +388,7 @@ static void handler(int sig)
 
 
 
-string loggedMenu(bool &flag)
+string loggedMenu(bool &flag, const string user)
 
 {
 
@@ -438,7 +444,7 @@ string loggedMenu(bool &flag)
 
         cout << "Importing file" << endl;
 
-        message = "1 " + location + filename;
+        message = "1|" + user + " |" + location + " |" + filename;
 
 
 
@@ -462,7 +468,7 @@ string loggedMenu(bool &flag)
 
         cin >> location;
 
-        message = "2 " + filename + location;
+        message = "2|" + user + " |" + location + " |" + filename;
 
 
 
@@ -580,7 +586,7 @@ string loggedMenu(bool &flag)
 
 
 
-string menu(bool &logged)
+string menu(bool &logged, string &user)
 
 {
 
@@ -624,7 +630,11 @@ string menu(bool &logged)
 
 
 
-        message = "L " + username + " " + password;
+        message = "L " + username + "|" + password;
+
+        user = username;
+
+        break;
 
     case '2':
 
@@ -638,7 +648,9 @@ string menu(bool &logged)
 
         cin >> password;
 
-        message = "R " + username + " " + password;
+        message = "R " + username + "|" + password;
+
+        user = username;
 
         break;
 
