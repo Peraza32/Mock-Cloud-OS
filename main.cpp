@@ -29,10 +29,12 @@ int main(void) {
 		managerDefault.writeReadFile(clients[i], "home/file.txt");
 
 		// Show files inside of each client space
-		/*cout << "For deafult cloud, client " << i << ":" << endl;
-		managerDefault.showFiles(clients[i]);
-		cout << "For no deafult cloud, client " << i << ":" << endl;
-		managerNoDefault.showFiles(clients[i]);*/
+		cout << "For deafult cloud, client " << i << ":" << endl;
+		string str = "";
+		managerDefault.showFiles(clients[i], &str);
+		cout << str << endl;
+		//cout << "For no deafult cloud, client " << i << ":" << endl;
+		//managerNoDefault.showFiles(clients[i]);
 	}
 
 	for(int i = 0; i < 2; ++i) {
@@ -41,7 +43,7 @@ int main(void) {
 		managerDefault.writeReadFile(clients[i], "home/file.txt");
 	}	
 
-	string sourcePath;
+	/*string sourcePath;
 	cout << "----------------------------------------------------------" << endl;
 	cout << "Now it is time to test the import function" << endl;
 	cout << "Write an absolute path to import a file from your computer to client1's home directory: " << endl;
@@ -53,7 +55,7 @@ int main(void) {
 	cout << "Now it is time to test the export function" << endl;
 	cout << "Write a path where to export file.txt from client1's home directory to your computer: " << endl;
 	cin >> destinationPath;
-	managerDefault.exportFile("client1", "home/file.txt", destinationPath);
+	managerDefault.exportFile("client1", "home/file.txt", destinationPath);*/
 	
 	cout << "Want to delete all files and directories? (1/0) "; 
 	cin >> deleteAll;

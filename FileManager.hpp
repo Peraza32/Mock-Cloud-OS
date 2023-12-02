@@ -41,8 +41,8 @@ public:
 	int createFile(string clientSpace, string filename); // Creates a file inside a client space
 	int deleteFile(string clientSpace, string filename); // Deletes a file inside a client space
 
-	void showFiles(string clientSpace); // Shows all files in the Cloud space of a specific client
-	void showFiles(string clientSpace, string dir); // Shows only files in the specified directory
+	void showFiles(string clientSpace, string* result); // Shows all files in the Cloud space of a specific client
+	void showFiles(string clientSpace, string dir, string* result); // Shows only files in the specified directory
 
 	void importFile(string clientSpace, string sourcePath, string destinationPath);
 	void exportFile(string clientSpace, string sourcePath, string destinationPath);
@@ -298,30 +298,26 @@ int FileManager::deleteFile(string clientSpace, string filename) {
 
 // Show only files in the specified directory
 // dirname must be an absolute route
-void FileManager::showFiles(string clientSpace, string dirname) {
+void FileManager::showFiles(string clientSpace, string dirname, string* result) {
 	if(directoryExistsInCloud(clientSpace)) {
 
 		// Open the specified directory
 		DIR* dir = opendir(dirname.c_str());
-		if(dir == NULL) {
-			cout << "Specified directory can not be open: " << dirname << endl;
-			return;
-		}
+		if(dir == NULL) 
+			cout << "Err: Specified directory can not be open: " + dirname + "\n"; 
 
 		// Read content of the directory
 		dirent* entity = readdir(dir);
 
 		while(entity != NULL) {
+			string path = dirname + "/" + entity->d_name;
 
-			if(entity->d_type == DT_DIR) // print in blue all directories
-				cout << BLUE << entity->d_name << RESET << endl;
-			else 
-				cout << entity->d_name << endl;
+			if(strcmp(entity->d_name, ".") != 0 && strcmp(entity->d_name, "..") != 0)
+				*result = *result + path + ",";
 			
 			// Print recursively all contents inside a directory except "." and ".."
 			if(entity->d_type == DT_DIR && strcmp(entity->d_name, ".") != 0 && strcmp(entity->d_name, "..") != 0) {
-				string path = dirname + "/" + entity->d_name;
-				showFiles(clientSpace, path);
+				showFiles(clientSpace, path, result);
 			}
 
 			entity = readdir(dir);
@@ -330,18 +326,17 @@ void FileManager::showFiles(string clientSpace, string dirname) {
 		closedir(dir);
 	} 
 	else {
-		cerr << "Client space was not found" << endl;
+		cout << "Err: Client space was not found\n";
 	}
 }
 
 // Show all files in the Cloud space of a specific client
-void FileManager::showFiles(string clientSpace) {
+void FileManager::showFiles(string clientSpace, string* result) {
 	if(directoryExistsInCloud(clientSpace)) {
-		showFiles(clientSpace ,this->baseDirectory + "/" + clientSpace);	
+		showFiles(clientSpace ,this->baseDirectory + "/" + clientSpace, result);	
 	} 
-	else {
-		cerr << "Client space was not found" << endl;
-	}
+	else 
+		cout << "Err: Client space was not found\n";
 }
 
 void FileManager::importFile(string clientSpace, string sourcePath, string destinationPath) {
