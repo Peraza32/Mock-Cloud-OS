@@ -310,12 +310,13 @@ void FileManager::showFiles(string clientSpace, string dirname, string* result) 
 		dirent* entity = readdir(dir);
 
 		while(entity != NULL) {
+			string path = dirname + "/" + entity->d_name;
 
-			*result = *result + entity->d_name + "|";
+			if(strcmp(entity->d_name, ".") != 0 && strcmp(entity->d_name, "..") != 0)
+				*result = *result + path + ",";
 			
 			// Print recursively all contents inside a directory except "." and ".."
 			if(entity->d_type == DT_DIR && strcmp(entity->d_name, ".") != 0 && strcmp(entity->d_name, "..") != 0) {
-				string path = dirname + "/" + entity->d_name;
 				showFiles(clientSpace, path, result);
 			}
 
