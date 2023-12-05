@@ -22,23 +22,19 @@
 
 #include "FileManager.hpp"
 
+#include "Utility.hpp"
 
+#include "Message.hpp"
 
 using namespace std;
-
-
 
 #define NOTIFY_SIG SIGUSR1
 
 static void handler(int);
 
-
-
 string loggedMenu(bool &flag, const string user);
 
-string menu(bool &logged, string &user);
-
-
+string menu(bool &flag, string &user);
 
 int main()
 
@@ -46,37 +42,29 @@ int main()
 
     bool isChild = false;
 
-
-
     //-------------------------------------------------------------------------------------
 
     // Variable initailization and Constants declaration
 
     //-------------------------------------------------------------------------------------
 
-    struct sigevent sev;           // Notification structure
-
-    struct sigaction sa;           // Signal structure
-
-    sigset_t blockMask, emptyMask; // Signal masks
-
-
-
     // Variables for the program
 
     string message;
 
-    mq_attr attr; // Attributes of the queue
+    mq_attr attr, resAttr; // Attributes of the queue
 
-    bool flag = true;
+    bool flag = false;
 
     bool session = false;
 
-
-
     string user;
 
+    Message msg = Message();
+    Message response = Message();
 
+    string queue_response;
+    mqd_t mq_response;
 
     // Parameters for the queue
 
@@ -84,13 +72,9 @@ int main()
 
     const int queue_permissions = 0666;
 
-
-
     // Opening the message queue
 
-    mqd_t mq = mq_open(queue_name, O_RDWR, queue_permissions, NULL);
-
-
+    mqd_t mq = mq_open(queue_name, O_RDWR | O_NONBLOCK, queue_permissions, NULL);
 
     // checking if the queue exists and was open
 
@@ -115,9 +99,7 @@ int main()
                 perror("execl");
 
                 exit(1); // Exit the child process on error
-
             }
-
         }
 
         else
@@ -132,15 +114,9 @@ int main()
 
             waitpid(pid, &status, 0); // Waiting for the childs execution to terminate to continue
 
-
-
-            mq = mq_open(queue_name, O_WRONLY | O_NONBLOCK, queue_permissions, NULL);
-
+            mq = mq_open(queue_name, O_CREAT | O_RDWR | O_NONBLOCK, queue_permissions, NULL);
         }
-
     }
-
-
 
     mq_getattr(mq, &attr);
 
@@ -150,11 +126,9 @@ int main()
 
     //-------------------------------------------------------------------------------------
 
+    /*sigemptyset(&blockMask); // Block timer signal temporarily
 
-
-    sigemptyset(&blockMask);                              // Block timer signal temporarily
-
-    sigaddset(&blockMask, NOTIFY_SIG);                    // Add timer signal to block mask
+    sigaddset(&blockMask, NOTIFY_SIG); // Add timer signal to block mask
 
     if (sigprocmask(SIG_SETMASK, &blockMask, NULL) == -1) //
 
@@ -163,10 +137,7 @@ int main()
         cout << "Error setting up signal handler" << endl;
 
         return -1;
-
     }
-
-
 
     sigemptyset(&sa.sa_mask); // Unblock timer signal
 
@@ -181,99 +152,115 @@ int main()
         cout << "Error setting up signal handler" << endl;
 
         return -1;
-
     }
-
-
 
     sev.sigev_notify = SIGEV_SIGNAL; // Notify via signal
 
-    sev.sigev_signo = NOTIFY_SIG;    // Notify using this signal
+    sev.sigev_signo = NOTIFY_SIG; // Notify using this signal
 
-    if (mq_notify(mq, &sev) == -1)   // Establish asynchronous notification
+    if (mq_notify(mq, &sev) == -1) // Establish asynchronous notification
 
     {
 
         cout << "Error setting up signal handler" << endl;
 
         return -1;
-
-    }
-
-
+    }*/
 
     // -------------------------------------------------------------------------------------
 
-
-
-    char *response;
-
     // Reading messages from terminal, until exits with "exit"
 
-    while (flag)
+    while (!flag)
 
     {
 
-        sigsuspend(&emptyMask);        // Wait for notification signal
+        // sigsuspend(&emptyMask); // Wait for notification signal
 
-        if (mq_notify(mq, &sev) == -1) // Reregister for notification
+        /*if (mq_notify(mq, &sev) == -1) // Reregister for notification
 
         {
 
             cout << "Error reestablishing notification" << endl;
 
             return -1;
-
-        }
+        }*/
 
         if (flag)
 
             break;
 
-
-
-        mq_getattr(mq, &attr);
-
-        buffer[attr.mq_msgsize];
-
-
-
         if (session)
 
         {
+            response.clear();
+            receivedMessage.clear();
+            message.clear();
+            memset(buffer, 0, sizeof(buffer));
+            mq_getattr(mq, &attr);
 
-
-
+            buffer[attr.mq_msgsize];
             message = loggedMenu(flag, user);
 
-            if (message == "6")
+            // cout << message << endl;
+            msg.createFromString(message);
+            cout << msg.toString() << endl;
+            mq_send(mq, msg.toString().c_str(), msg.toString().size(), 0);
 
+            // mq_send(mq, message.c_str(), message.size(), 0);
+            if (response.getOption() == "6")
             {
-
-                mq_send(mq, message.c_str(), message.size(), 0);
-
+                mq_close(mq_response);
+                mq_unlink(queue_response.c_str());
+                flag = true;
                 break;
-
             }
-
-
-
-            cout << message << endl;
-
-            mq_send(mq, message.c_str(), message.size(), 0);
 
             // Response from server
 
-            auto rom = mq_receive(mq, buffer, attr.mq_msgsize, nullptr); // Receiving the message
+            auto rom = mq_receive(mq_response, buffer, resAttr.mq_msgsize, nullptr); // Receiving the message
 
-            receivedMessage = buffer;                                    // Converting the message to string
+            receivedMessage = buffer; // Converting the message to string
 
-            cout << "Message received: " << buffer << endl;
+            response.createFromString(receivedMessage);
 
+            if (response.getOption() == "1")
+            {
+                if (response.getOneMessage(0) == "1")
+                    cout << response.getOneMessage(1) << endl;
+                else
+                    cout << response.getOneMessage(1) << endl;
+            }
 
+            if (response.getOption() == "2")
+            {
+                if (response.getOneMessage(0) == "1")
+                    cout << response.getOneMessage(1) << endl;
+                else
+                    cout << response.getOneMessage(1) << endl;
+            }
 
-            message.clear();
+            if (response.getOption() == "3")
+            {
+                if (response.getOneMessage(0) == "1")
+                    cout << response.getOneMessage(1) << endl;
+                else
+                    cout << response.getOneMessage(1) << endl;
+            }
 
+            if (response.getOption() == "4")
+            {
+                if (response.getOneMessage(0) == "1")
+                    cout << response.getOneMessage(1) << endl;
+                else
+                    cout << response.getOneMessage(1) << endl;
+            }
+
+            if (response.getOption() == "5")
+            {
+                cout << "Files in server: " << endl;
+                response.showSeparatedMessages(',');
+            }
         }
 
         else
@@ -282,89 +269,54 @@ int main()
 
             message = menu(flag, user);
 
-            if (message.substr(0, 1) == "L")
+            msg.createFromString(message);
 
+            mq_send(mq, msg.toString().c_str(), msg.toString().length(), 0);
+
+            // setting response queue
+            queue_response = "/" + user + "ResponseQueue";
+            mq_response = mq_open(queue_response.c_str(), O_CREAT | O_RDWR, 0666, NULL);
+            mq_getattr(mq_response, &resAttr);
+            buffer[resAttr.mq_msgsize];
+
+            // Response from server
+            auto rom = mq_receive(mq_response, buffer, resAttr.mq_msgsize, nullptr); // Receiving the message
+            receivedMessage = buffer;                                                // Converting the message to string
+            response.createFromString(receivedMessage);
+
+            if (response.getOption() == "L")
             {
-
-                mq_send(mq, message.c_str(), message.size(), 0);
-
-                // Response from server
-
-                auto rom = mq_receive(mq, buffer, attr.mq_msgsize, nullptr); // Receiving the message
-
-                receivedMessage = buffer;                                    // Converting the message to string
-
-                cout << "Message received: " << buffer << endl;
-
-                if (receivedMessage.substr(0, 1) == "1")
-
+                if (response.getOneMessage(0) == "1")
                 {
-
-                    cout << "Login successful" << endl;
-
+                    cout << response.getOneMessage(1) << endl;
                     session = true;
-
                 }
 
                 else
-
-                {
-
-                    cout << "Login failed" << endl;
-
-                    user = "";
-
-                }
-
+                    cout << response.getOneMessage(1) << endl;
             }
 
-
-
-            if (message.substr(0, 1) == "R")
+            if (response.getOption() == "R")
 
             {
 
-                mq_send(mq, message.c_str(), message.size(), 0);
-
-                // Response from server
-
-                auto rom = mq_receive(mq, buffer, attr.mq_msgsize, nullptr); // Receiving the message
-
-                receivedMessage = buffer;                                    // Converting the message to string
-
-                cout << "Message received: " << buffer << endl;
-
-                if (receivedMessage.substr(0, 1) == "1")
-
+                if (response.getOneMessage(0) == "1")
                 {
-
-                    cout << "Registration successful" << endl;
-
+                    cout << response.getOneMessage(1) << endl;
                     session = true;
-
                 }
 
                 else
-
-                {
-
-                    cout << "Registration failed" << endl;
-
-                    user = "";
-
-                }
-
+                    cout << response.getOneMessage(1) << endl;
             }
 
-
-
+            response.clear();
+            receivedMessage.clear();
             message.clear();
-
+            // clear buffer
+            memset(buffer, 0, sizeof(buffer));
         }
-
     }
-
-
 
     // closing the queue
 
@@ -373,20 +325,14 @@ int main()
     mq_unlink(queue_name);
 
     return 0;
-
 }
-
-
 
 static void handler(int sig)
 
 {
 
     // sig = 1;
-
 }
-
-
 
 string loggedMenu(bool &flag, const string user)
 
@@ -394,7 +340,8 @@ string loggedMenu(bool &flag, const string user)
 
     string message;
 
-    string location;
+    string originLocation;
+    string destinationLocation;
 
     string filename;
 
@@ -416,73 +363,72 @@ string loggedMenu(bool &flag, const string user)
 
     cin >> option;
 
-
-
     switch (option)
 
     {
 
     case '1':
 
-
-
         cout << endl;
 
-        cout << "Enter the location of the file/s to import" << endl;
+        cout << "Enter the location of the file to import" << endl;
 
-        cin >> location;
+        cin >> originLocation;
 
         cout << "Enter the name of the file to import:" << endl;
 
         cin >> filename;
 
+        cout << "Enter the name of directory where the file should be imported\nif you want to use the root directory, input: . (dot)" << endl;
 
+        cin >> destinationLocation;
+
+        destinationLocation = (destinationLocation == ".") ? "" : destinationLocation;
 
         // TODO: Check for file existence
 
-
-
         cout << "Importing file" << endl;
 
-        message = "1|" + user + " |" + location + " |" + filename;
-
-
+        message = "|1|" + user + "|" + originLocation + "|" + destinationLocation + "|" + filename + "|";
 
         // clearing variables
 
-        location.clear();
+        originLocation.clear();
+
+        destinationLocation.clear();
 
         filename.clear();
-
-
 
         break;
 
     case '2':
 
-        cout << "Enter the name of the file to retrieve from the server:" << endl;
+        cout << endl;
+
+        cout << "Enter the location of the file to export\n if it's in the root directory, input: . (dot)" << endl;
+
+        cin >> originLocation;
+
+        cout << "Enter the name of the file to export:" << endl;
 
         cin >> filename;
 
-        cout << "Enter the location where the file should be exported. \n Remeber, you must have access to this location" << endl;
+        cout << "Enter the name of directory where the file should be exported" << endl;
 
-        cin >> location;
+        cin >> destinationLocation;
 
-        message = "2|" + user + " |" + location + " |" + filename;
-
-
-
+        originLocation = (originLocation == ".") ? "" : originLocation;
         // TODO: Check for file existence
 
+        cout << "Importing file" << endl;
 
-
-        cout << "Exporting file" << endl;
-
-
+        message = "|2|" + user + "|" + originLocation + "|" + destinationLocation + "|" + filename + "|";
 
         // clearing variables
 
-        location.clear();
+        originLocation.clear();
+
+        destinationLocation.clear();
 
         filename.clear();
 
@@ -494,27 +440,27 @@ string loggedMenu(bool &flag, const string user)
 
         cin >> filename;
 
-
-
         cout << "Creating file" << endl;
 
-
+        message = "|3|" + user + "|" + filename + "|";
 
         // clearing variables
 
-        location.clear();
-
         filename.clear();
-
-        message = "3 " + filename;
 
         break;
 
     case '4':
 
-        cout << "Enter the name of the file to delete from the server: \n Remeber this action CAN NOT BE UNDONE" << endl;
+        cout << "Enter the name of the file to delete from the server: \nRemeber this action CAN NOT BE UNDONE" << endl;
 
         cin >> filename;
+
+        cout << "Enter the name of directory where the file is located\nif you want to use the root directory, input: . (dot)" << endl;
+
+        cin >> destinationLocation;
+
+        destinationLocation = (destinationLocation == ".") ? "" : destinationLocation;
 
         cout << "Are you sure you want to delete the file? (Y/N)" << endl;
 
@@ -524,8 +470,8 @@ string loggedMenu(bool &flag, const string user)
 
         {
 
-            message = "4 " + filename;
-
+            message = "|4|" + user + "|" + destinationLocation + "|" + filename + "|";
+            cout << "Deleting file" << endl;
         }
 
         else
@@ -533,24 +479,15 @@ string loggedMenu(bool &flag, const string user)
         {
 
             cout << "File not deleted" << endl;
-
-            break;
-
         }
 
-
-
         // TODO: Check for file existence
-
-
-
-        cout << "Deleting file" << endl;
-
-
 
         // clearing variables
 
         filename.clear();
+
+        destinationLocation.clear();
 
         break;
 
@@ -558,7 +495,7 @@ string loggedMenu(bool &flag, const string user)
 
         cout << "Listing files" << endl;
 
-        message = "5";
+        message = "|5|" + user + "|";
 
         break;
 
@@ -566,7 +503,7 @@ string loggedMenu(bool &flag, const string user)
 
         cout << "Exiting" << endl;
 
-        message = "6";
+        message = "|6|";
 
         flag = false;
 
@@ -577,28 +514,20 @@ string loggedMenu(bool &flag, const string user)
         cout << "Invalid option" << endl;
 
         break;
-
     }
 
     return message;
-
 }
 
-
-
-string menu(bool &logged, string &user)
+string menu(bool &flag, string &user)
 
 {
-
-
 
     char option;
 
     string message;
 
     string username, password;
-
-    Login login = Login("./");
 
     cout << "Select an option: ";
 
@@ -609,8 +538,6 @@ string menu(bool &logged, string &user)
     cout << "\n3. Exit" << endl;
 
     cin >> option;
-
-
 
     switch (option)
 
@@ -628,9 +555,7 @@ string menu(bool &logged, string &user)
 
         cin >> password;
 
-
-
-        message = "L " + username + "|" + password;
+        message = "|L|" + username + "|" + password + "|";
 
         user = username;
 
@@ -648,7 +573,7 @@ string menu(bool &logged, string &user)
 
         cin >> password;
 
-        message = "R " + username + "|" + password;
+        message = "|R|" + username + "|" + password + "|";
 
         user = username;
 
@@ -657,8 +582,7 @@ string menu(bool &logged, string &user)
     case '3':
 
         cout << "Exiting" << endl;
-
-
+        flag = false;
 
         break;
 
@@ -667,9 +591,7 @@ string menu(bool &logged, string &user)
         cout << "Invalid option" << endl;
 
         break;
-
     }
 
     return message;
-
 }

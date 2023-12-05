@@ -12,9 +12,17 @@
 
 #include <signal.h> // signal
 
+#include <pthread.h> // threads
+
+#include <vector>
+
 #include "Login.hpp"
 
 #include "FileManager.hpp"
+
+#include "Utility.hpp"
+
+#include "Message.hpp"
 
 using namespace std;
 
@@ -42,6 +50,10 @@ int main()
 
     //-------------------------------------------------------------------------------------
 
+    Message msg = Message();
+
+    Message response = Message();
+
     // Signal structures
 
     struct sigevent sev;
@@ -65,6 +77,18 @@ int main()
     const int permission = 0666;
 
     bool flag = false;
+
+    vector<string> unformattedInput;
+
+    // Temporal response queue
+
+    string responseQueue;
+
+    mq_attr resAttr;
+
+    // threads
+
+    vector<pthread_t> threads;
 
     //-------------------------------------------------------------------------------------
 
@@ -177,6 +201,14 @@ int main()
 
             cout << "Message received: " << buffer << endl;
 
+            msg.createFromString(receivedMessage);
+
+            // creating response queue for the client
+
+            responseQueue = "/" + msg.getSender() + "ResponseQueue";
+
+            mqd_t responseMQ = mq_open(responseQueue.c_str(), O_RDWR | O_NONBLOCK, permission, NULL);
+
             if (strcmp(buffer, "6") == 0)
 
             {
@@ -188,100 +220,300 @@ int main()
 
             // Options based on messages received from client
 
-            if (receivedMessage.compare(0, 1, "1") == 0)
+            if (msg.getOption() == "1")
 
             {
+
+                // message from queue must contain:
+
+                //  option, username, path where the file will be saved, path of the file to be imported
+
+                //  example: "1|username|sourcePath|destinationPath"
+
+                //  here the destinationPath is inside the clientSpace
 
                 cout << "Importing file..." << endl;
 
-                manager.importFile();
+                // fileManager.importFile(<clientSpace>, <sourcePath>, <destinationPath>, filename)
 
-                mq_send(mq, "File imported", 14, 0);
+                try
+
+                {
+
+                    response.setSender(msg.getSender());
+
+                    manager.importFile(msg.getSender(), msg.getOneMessage(0), msg.getOneMessage(1), msg.getOneMessage(2));
+
+                    response.setOption("1");
+
+                    response.addMessage("1");
+
+                    response.addMessage("File imported Successfully");
+                }
+
+                catch (const std::exception &e)
+
+                {
+
+                    std::cerr << e.what() << '\n';
+
+                    response.setOption("1");
+
+                    response.addMessage("0");
+
+                    response.addMessage("File not imported");
+                }
+
+                mq_send(responseMQ, response.toString().c_str(), response.toString().length(), 0);
             }
 
-            if (receivedMessage.compare(0, 1, "2") == 0)
+            if (msg.getOption() == "2")
 
             {
 
-                cout << "Exporting file" << endl;
+                // message from queue must contain:
 
-                manager.exportFile();
+                //  option, username, path where the file is saved, path of the file to be exported
 
-                mq_send(mq, "File exported", 14, 0);
+                //  example: "2|username|sourcePath|destinationPath"
+
+                //  here the sourcePath is inside the clientSpace
+
+                cout << "Exporting file..." << endl;
+
+                try
+
+                {
+
+                    response.setSender(msg.getSender());
+
+                    manager.exportFile(msg.getSender(), msg.getOneMessage(0), msg.getOneMessage(1), msg.getOneMessage(2));
+
+                    response.setOption("2");
+
+                    response.addMessage("File exported Successfully");
+                }
+
+                catch (const std::exception &e)
+
+                {
+
+                    std::cerr << e.what() << '\n';
+
+                    response.setOption("2");
+
+                    response.addMessage("0");
+
+                    response.addMessage("File not exported");
+                }
+
+                mq_send(responseMQ, response.toString().c_str(), response.toString().length(), 0);
             }
 
-            if (receivedMessage.compare(0, 1, "3") == 0)
+            if (msg.getOption() == "3")
 
             {
 
                 cout << "Creating file" << endl;
+
+                response.setOption("3");
+
+                response.setSender(msg.getSender());
+
+                if (manager.createFile(msg.getSender(), msg.getMessages()[0]) != -1)
+
+                {
+
+                    response.addMessage("1");
+
+                    response.addMessage("File created");
+
+                    mq_send(responseMQ, response.toString().c_str(), response.toString().length(), 0);
+                }
+
+                else
+
+                {
+
+                    response.addMessage("0");
+
+                    response.addMessage("File not created");
+
+                    mq_send(responseMQ, response.toString().c_str(), response.toString().length(), 0);
+                }
             }
 
-            if (receivedMessage.compare(0, 1, "4") == 0)
+            if (msg.getOption() == "4")
 
             {
+
+                // message from queue must contain:
+
+                // option, username, path where the file is saved, including the name of the file to delete
+
+                // example: "4|username|path\filename"
 
                 cout << "Deleting files" << endl;
 
-                manager.deleteFile();
+                response.setOption("4");
+
+                response.setSender(msg.getSender());
+
+                if (manager.deleteFile(msg.getSender(), msg.getOneMessage(0), msg.getOneMessage(1)) != -1)
+
+                {
+
+                    response.addMessage("1");
+
+                    response.addMessage("File deleted");
+                }
+
+                else
+
+                {
+
+                    response.addMessage("0");
+
+                    response.addMessage("File not deleted");
+                }
+
+                mq_send(responseMQ, response.toString().c_str(), response.toString().length(), 0);
             }
 
-            if (receivedMessage.compare(0, 1, "5") == 0)
+            if (msg.getOption() == "5")
 
             {
+
+                string files;
 
                 cout << "Listing files" << endl;
 
-                // manager.showFiles();
+                // Setting up response
+
+                response.setOption("5");
+
+                response.setSender(msg.getSender());
+
+                manager.showFiles(msg.getSender(), &files);
+
+                response.addMessage(files);
+
+                // Sending response
+
+                mq_send(responseMQ, response.toString().c_str(), response.toString().length(), 0);
             }
 
-            if (receivedMessage.compare(0, 1, "R") == 0)
+            if (msg.getOption() == "R")
 
             {
 
-                cout << "New user registered" << endl;
+                // extracting username and password from the message
 
-                if (login.registerUser("username", "password"))
+                cout << "Registering new user" << endl;
+
+                cout << msg.toString() << endl;
+
+                cout << msg.getSender() << endl;
+
+                cout << msg.getMessages()[0] << endl;
+
+                if (login.registerUser(msg.getSender(), msg.getMessages()[0]))
 
                 {
 
-                    manager.createClientDirectory("username");
+                    cout << "New user registered" << endl;
 
-                    mq_send(mq, "1", 1, 0);
+                    manager.createClientDirectory(msg.getSender());
+
+                    response.setSender(msg.getSender());
+
+                    response.setOption("R");
+
+                    response.addMessage("1");
+
+                    response.addMessage("User registered");
+
+                    mq_send(responseMQ, response.toString().c_str(), response.toString().length(), 0);
                 }
 
                 else
 
                 {
 
-                    mq_send(mq, "0", 1, 0);
+                    response.setSender(msg.getSender());
+
+                    response.setOption("R");
+
+                    response.addMessage("0");
+
+                    response.addMessage("User not registered");
+
+                    mq_send(responseMQ, response.toString().c_str(), response.toString().length(), 0);
                 }
+
+                //  clearing vector
+
+                response.clear();
             }
 
-            if (receivedMessage.compare(0, 1, "L") == 0)
+            if (msg.getOption() == "L")
 
             {
 
-                cout << "User Logged" << endl;
+                cout << "Logging..." << endl;
 
-                if (login.login("username", "password"))
+                if (login.login(msg.getSender(), msg.getMessages()[0]))
 
                 {
 
-                    mq_send(mq, "1", 1, 0);
+                    cout << "User logged" << endl;
+
+                    response.setSender(msg.getSender());
+
+                    response.setOption("L");
+
+                    response.addMessage("1");
+
+                    response.addMessage("User logged");
+
+                    mq_send(responseMQ, response.toString().c_str(), response.toString().length(), 0);
                 }
 
                 else
 
                 {
 
-                    mq_send(mq, "0", 1, 0);
+                    cout << "User not logged" << endl;
+
+                    response.setSender(msg.getSender());
+
+                    response.setOption("L");
+
+                    response.addMessage("0");
+
+                    response.addMessage("User not logged");
+
+                    mq_send(responseMQ, response.toString().c_str(), response.toString().length(), 0);
                 }
             }
 
             // clean message
 
+            response.clear();
+
+            receivedMessage.clear();
+
+            message.clear();
+
             memset(buffer, 0, sizeof(buffer));
+
+            // close response queue
+
+            mq_close(responseMQ);
+
+            // clear response
+
+            response.clear();
         }
     }
 
@@ -296,15 +528,25 @@ static void handler(int sig)
 
 {
 
-    cout << "\n----------------------------------------------";
+    /*cout << "\n----------------------------------------------";
+
+
 
     cout << "\nClosing the message queue";
 
+
+
     // Close and unlink the message queue
+
+
 
     mq_close(mq);
 
+
+
     mq_unlink(queue_name);
 
-    exit(0); // Terminate the program
+
+
+    exit(0); // Terminate the program*/
 }
