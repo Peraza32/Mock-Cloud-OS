@@ -351,8 +351,6 @@ int main()
 
     mq_close(mq);
 
-    mq_unlink(queue_name);
-
     return 0;
 }
 
@@ -409,7 +407,7 @@ string loggedMenu(bool &flag, const string user)
 
         cout << endl;
 
-        cout << "Enter the location of the file to import" << endl;
+        cout << "Enter the location of the file to import, without the file name " << endl;
 
         cin >> originLocation;
 
