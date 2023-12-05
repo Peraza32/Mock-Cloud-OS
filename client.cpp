@@ -204,11 +204,10 @@ int main()
 
             // cout << message << endl;
             msg.createFromString(message);
-            cout << msg.toString() << endl;
             mq_send(mq, msg.toString().c_str(), msg.toString().size(), 0);
 
             // mq_send(mq, message.c_str(), message.size(), 0);
-            if (response.getOption() == "6")
+            if (msg.getOption() == "6")
             {
                 mq_close(mq_response);
                 mq_unlink(queue_response.c_str());
