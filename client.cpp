@@ -374,6 +374,8 @@ string loggedMenu(bool &flag, const string user)
 
     char option;
 
+    cout << "\n-----------------------------------------" << endl;
+
     cout << "Select an option: ";
 
     cout << "\n1. Import file to server";
@@ -386,7 +388,7 @@ string loggedMenu(bool &flag, const string user)
 
     cout << "\n5. List files in server";
 
-    cout << "\n6.  Write to txt file";
+    cout << "\n6. Write to txt file";
 
     cout << "\n7. Exit" << endl;
 
@@ -405,7 +407,7 @@ string loggedMenu(bool &flag, const string user)
 
     case '1':
 
-        cout << endl;
+        cout << "\n-----------------------------------------" << endl;
 
         cout << "Enter the location of the file to import, without the file name " << endl;
 
@@ -439,7 +441,7 @@ string loggedMenu(bool &flag, const string user)
 
     case '2':
 
-        cout << endl;
+        cout << "\n-----------------------------------------" << endl;
 
         cout << "Enter the location of the file to export\n if it's in the root directory, input: . (dot)" << endl;
 
@@ -472,6 +474,8 @@ string loggedMenu(bool &flag, const string user)
 
     case '3':
 
+        cout << "\n-----------------------------------------" << endl;
+
         cout << "Enter the name of the file to create:" << endl;
 
         cin >> filename;
@@ -487,6 +491,8 @@ string loggedMenu(bool &flag, const string user)
         break;
 
     case '4':
+
+        cout << "\n-----------------------------------------" << endl;
 
         cout << "Enter the name of the file to delete from the server: \nRemeber this action CAN NOT BE UNDONE" << endl;
 
@@ -529,6 +535,8 @@ string loggedMenu(bool &flag, const string user)
 
     case '5':
 
+        cout << "\n-----------------------------------------" << endl;
+
         cout << "Listing files" << endl;
 
         message = "|5|" + user + "|";
@@ -536,6 +544,7 @@ string loggedMenu(bool &flag, const string user)
         break;
 
     case '6':
+        cout << "\n-----------------------------------------" << endl;
 
         cout << "Enter the location of the file to edit \nif you want to use the root directory, input: . (dot)" << endl;
         cin >> originLocation;
@@ -557,6 +566,8 @@ string loggedMenu(bool &flag, const string user)
         break;
 
     case '7':
+    
+        cout << "\n-----------------------------------------" << endl;
 
         cout << "Exiting" << endl;
 
@@ -567,6 +578,7 @@ string loggedMenu(bool &flag, const string user)
         break;
 
     default:
+        cout << "\n-----------------------------------------" << endl;
 
         cout << "Invalid option" << endl;
 
@@ -602,6 +614,8 @@ string menu(bool &flag, string &user)
 
     case '1':
 
+        cout << "\n-----------------------------------------" << endl;
+
         cout << "Login" << endl;
 
         cout << "Enter your username: ";
@@ -619,6 +633,8 @@ string menu(bool &flag, string &user)
         break;
 
     case '2':
+    
+        cout << "\n-----------------------------------------" << endl;
 
         cout << "Register" << endl;
 
@@ -637,6 +653,7 @@ string menu(bool &flag, string &user)
         break;
 
     case '3':
+        cout << "\n-----------------------------------------" << endl;
 
         cout << "Exiting" << endl;
         message = "|3|";
@@ -645,7 +662,7 @@ string menu(bool &flag, string &user)
         break;
 
     default:
-
+        cout << "\n-----------------------------------------" << endl;
         cout << "Invalid option" << endl;
 
         break;
