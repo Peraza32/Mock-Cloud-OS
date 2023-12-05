@@ -76,7 +76,7 @@ public:
 
 	// Deletes a file inside a client space
 
-	void writeReadFile(string clientSpace, string filePath); // Opens nano for each client and lets the user write in the specified file
+	string writeReadFile(string clientSpace, string filePath); // Opens nano for each client and lets the user write in the specified file
 };
 
 FileManager::FileManager()
@@ -677,13 +677,21 @@ void FileManager::exportFile(string clientSpace, string sourcePath, string desti
 
 	{
 
-		if (fileExistsInCloud(clientSpace + "/" + sourcePath + file))
+		string source = baseDirectory + "/" + clientSpace + "/" + sourcePath + file;
+
+		string cmd = "mv " + source + " " + destinationPath;
+
+		system(cmd.c_str());
+
+		/*if (fileExistsInCloud(clientSpace + "/" + sourcePath + file))
 
 		{
 
+
+
 			smatch filename;
-			string path = sourcePath + file;
-			if (regex_search(path, filename, regex("[^/]+$")))
+
+			if (regex_search(sourcePath, filename, regex("[^/]+$")))
 
 			{
 
@@ -707,7 +715,7 @@ void FileManager::exportFile(string clientSpace, string sourcePath, string desti
 
 			}
 
-		}
+		}*/
 	}
 
 	else
@@ -715,7 +723,7 @@ void FileManager::exportFile(string clientSpace, string sourcePath, string desti
 		perror("Client space was not found");
 }
 
-void FileManager::writeReadFile(string clientSpace, string filePath)
+string FileManager::writeReadFile(string clientSpace, string filePath)
 
 {
 
@@ -733,9 +741,11 @@ void FileManager::writeReadFile(string clientSpace, string filePath)
 
 			string cmd = "/bin/nano " + path;
 
-			system(cmd.c_str());
+			// system(cmd.c_str());
 
 			close(fd);
+
+			return path;
 		}
 
 		else
@@ -743,7 +753,11 @@ void FileManager::writeReadFile(string clientSpace, string filePath)
 		{
 
 			cerr << "Error opening the file" << endl;
+
+			return "";
 		}
+
+		return path;
 	}
 
 	else
@@ -752,6 +766,8 @@ void FileManager::writeReadFile(string clientSpace, string filePath)
 
 		cerr << "Client space was not found" << endl;
 	}
+
+	return "";
 }
 
 #endif

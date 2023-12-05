@@ -16,6 +16,10 @@
 
 #include <vector>
 
+#include <semaphore.h>
+
+// hand made libraries
+
 #include "Login.hpp"
 
 #include "FileManager.hpp"
@@ -37,6 +41,10 @@ void *clientLoop(void *info);
 mqd_t mq;
 
 const char *queue_name = "/MessageQueue";
+
+static int threadCount = 0;
+
+static sem_t sem;
 
 int main()
 
@@ -172,6 +180,12 @@ int main()
 
     //-------------------------------------------------------------------------------------
 
+    // Semaphore
+
+    sem_init(&sem, 0, 1);
+
+    //-------------------------------------------------------------------------------------
+
     while (flag != true)
 
     {
@@ -212,6 +226,33 @@ int main()
             // responseQueue = "/" + msg.getSender() + "ResponseQueue";
 
             // mqd_t responseMQ = mq_open(responseQueue.c_str(), O_RDWR | O_NONBLOCK, permission, NULL);
+
+            if (msg.getOption() == "0")
+
+            {
+
+                // shutdown
+
+                cout << "Shutting down..." << endl;
+
+                flag = true;
+
+                // join threads
+
+                if (threads.size() > 0)
+
+                {
+
+                    for (int i = 0; i < threads.size(); i++)
+
+                    {
+
+                        pthread_join(threads[i], NULL);
+                    }
+                }
+
+                break;
+            }
 
             // creating thread info
 
@@ -257,6 +298,10 @@ int main()
     mq_close(mq);
 
     mq_unlink(queue_name);
+
+    // destroying semaphore
+
+    sem_destroy(&sem);
 
     return 0;
 }
@@ -309,6 +354,8 @@ clientLoop(void *info)
     string responseQueue = "/" + msg.getSender() + "ResponseQueue";
 
     mqd_t responseMQ = mq_open(responseQueue.c_str(), O_RDWR | O_NONBLOCK, 0666, NULL);
+
+    int lock = threadCount;
 
     response.setSender(msg.getSender());
 
@@ -497,11 +544,36 @@ clientLoop(void *info)
         mq_send(responseMQ, response.toString().c_str(), response.toString().length(), 0);
     }
 
+    if (msg.getOption() == "6")
+
+    {
+
+        cout << "Sending path file..." << endl;
+
+        string path;
+
+        // Setting up response
+
+        response.setOption("6");
+
+        response.setSender(msg.getSender());
+
+        path = fManager.writeReadFile(msg.getSender(), msg.getOneMessage(0) + msg.getOneMessage(1));
+
+        response.addMessage(path);
+
+        // Sending response
+
+        mq_send(responseMQ, response.toString().c_str(), response.toString().length(), 0);
+    }
+
     if (msg.getOption() == "R")
 
     {
 
         // extracting username and password from the message
+
+        sem_wait(&sem);
 
         cout << "Registering new user" << endl;
 
@@ -542,11 +614,15 @@ clientLoop(void *info)
         //  clearing vector
 
         response.clear();
+
+        sem_post(&sem);
     }
 
     if (msg.getOption() == "L")
 
     {
+
+        sem_wait(&sem);
 
         cout << "Logging..." << endl;
 
@@ -585,6 +661,8 @@ clientLoop(void *info)
 
             mq_send(responseMQ, response.toString().c_str(), response.toString().length(), 0);
         }
+
+        sem_post(&sem);
     }
 
     mq_close(responseMQ);

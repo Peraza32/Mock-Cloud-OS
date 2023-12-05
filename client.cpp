@@ -207,8 +207,18 @@ int main()
             mq_send(mq, msg.toString().c_str(), msg.toString().size(), 0);
 
             // mq_send(mq, message.c_str(), message.size(), 0);
-            if (msg.getOption() == "6")
+            if (msg.getOption() == "7")
             {
+                mq_close(mq_response);
+                mq_unlink(queue_response.c_str());
+                flag = true;
+                break;
+            }
+
+            if (msg.getOption() == "0")
+            {
+                mq_send(mq, msg.toString().c_str(), msg.toString().size(), 0);
+                mq_close(mq);
                 mq_close(mq_response);
                 mq_unlink(queue_response.c_str());
                 flag = true;
@@ -260,6 +270,21 @@ int main()
                 cout << "Files in server: " << endl;
                 response.showSeparatedMessages(',');
             }
+
+            if (response.getOption() == "6")
+            {
+                int fd = open(response.getOneMessage(0).c_str(), O_RDWR | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR);
+                if (fd != -1)
+                {
+                    string cmd = "/bin/nano " + response.getOneMessage(0);
+                    system(cmd.c_str());
+                    close(fd);
+                }
+                else
+                {
+                    cerr << "Error opening the file" << endl;
+                }
+            }
         }
 
         else
@@ -269,6 +294,11 @@ int main()
             message = menu(flag, user);
 
             msg.createFromString(message);
+            if (msg.getOption() == "3")
+            {
+                flag = true;
+                break;
+            }
 
             mq_send(mq, msg.toString().c_str(), msg.toString().length(), 0);
 
@@ -358,9 +388,18 @@ string loggedMenu(bool &flag, const string user)
 
     cout << "\n5. List files in server";
 
-    cout << "\n6. Exit" << endl;
+    cout << "\n6.  Write to txt file";
+
+    cout << "\n7. Exit" << endl;
 
     cin >> option;
+
+    if (option == '0')
+    {
+        message = "|0|" + user + "|";
+        flag = true;
+        return message;
+    }
 
     switch (option)
 
@@ -500,9 +539,30 @@ string loggedMenu(bool &flag, const string user)
 
     case '6':
 
+        cout << "Enter the location of the file to edit \nif you want to use the root directory, input: . (dot)" << endl;
+        cin >> originLocation;
+        originLocation = (originLocation == ".") ? "" : originLocation;
+
+        cout << "Enter the name of the .text file to edit" << endl;
+        cin >> filename;
+
+        filename = filename + ".txt";
+
+        message = "|6|" + user + "|" + originLocation + "|" + filename + "|";
+
+        // clearing variables
+
+        originLocation.clear();
+
+        filename.clear();
+
+        break;
+
+    case '7':
+
         cout << "Exiting" << endl;
 
-        message = "|6|";
+        message = "|7|";
 
         flag = false;
 
@@ -581,7 +641,8 @@ string menu(bool &flag, string &user)
     case '3':
 
         cout << "Exiting" << endl;
-        flag = false;
+        message = "|3|";
+        flag = true;
 
         break;
 
