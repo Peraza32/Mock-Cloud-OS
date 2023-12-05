@@ -677,21 +677,13 @@ void FileManager::exportFile(string clientSpace, string sourcePath, string desti
 
 	{
 
-		string source = baseDirectory + "/" + clientSpace + "/" + sourcePath + file;
-
-		string cmd = "mv " + source + " " + destinationPath;
-
-		system(cmd.c_str());
-
-		/*if (fileExistsInCloud(clientSpace + "/" + sourcePath + file))
+		if (fileExistsInCloud(clientSpace + "/" + sourcePath + file))
 
 		{
 
-
-
 			smatch filename;
-
-			if (regex_search(sourcePath, filename, regex("[^/]+$")))
+			string path = sourcePath + file;
+			if (regex_search(path, filename, regex("[^/]+$")))
 
 			{
 
@@ -715,7 +707,7 @@ void FileManager::exportFile(string clientSpace, string sourcePath, string desti
 
 			}
 
-		}*/
+		}
 	}
 
 	else
