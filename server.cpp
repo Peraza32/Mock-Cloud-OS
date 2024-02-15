@@ -339,7 +339,6 @@ clientLoop(void *info)
 
 {
 
-	cout << "Hola";
 
     // Variables
 
