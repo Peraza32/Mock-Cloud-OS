@@ -339,6 +339,8 @@ clientLoop(void *info)
 
 {
 
+	cout << "Hola";
+
     // Variables
 
     ThreadInfo *threadInfo = (ThreadInfo *)info;
